@@ -47,50 +47,41 @@ const _makeRestDefinitions = (defs, all = false) =>
       return def;
     });
 
-const _makeMergedFieldDefinitions = (merged, candidate, override) => _addCommentsToAST(candidate.fields)
-  .reduce((fields, field) => {
+const _makeMergedFieldDefinitions = (merged, candidate, override) => {
+  const a = _addCommentsToAST(candidate.fields)
+  return a.reduce((fields, field) => {
     const original = merged.fields.find(base => base.name && typeof base.name.value !== 'undefined' &&
       field.name && typeof field.name.value !== 'undefined' &&
       base.name.value === field.name.value);
     if (!original) {
-      const base = fields.find((f) => f.name.value === field.name.value)
+      fields.push(field);
+    }else if(override){
+      const base = fields.find((f) => {
+        return f.name.value === field.name.value
+      } )
       if(base){
         fields.splice(fields.indexOf(base),1)
       }
-      fields.push(field);
+      fields.push(field)
     } else if (field.type.kind === 'NamedType') {
-      if(override){
-        const base = fields.find((f) => f.name.value === field.name.value)
-        if(base){
-          fields.splice(fields.indexOf(base),1)
-        }
-        fields.push(field);
-      }else{
         if (field.type.name.value !== original.type.name.value) {
           throw new Error(
             `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
             `${field.type.name.value} != ${original.type.name.value}`,
           );
         }
-      }
     } else if (field.type.kind === 'NonNullType') {
-      if(override){
-        const base = fields.find((f) => f.name.value === field.name.value)
-        if(base){
-          fields.splice(fields.indexOf(base),1)
-        }
-        fields.push(field);
-      }else{
-        if (field.type.type.name.value !== original.type.type.name.value) {
-          throw new Error(
-            `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
-            `${field.type.type.name.value} != ${original.type.type.name.value}`,
-          );
-        }
+      
+      if (field.type.type.name.value !== original.type.type.name.value) {
+        throw new Error(
+          `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
+          `${field.type.type.name.value} != ${original.type.type.name.value}`,
+        );
       }
     }
     return fields;
-  }, merged.fields);
+  }, merged.fields); 
+}
 
 const _makeMergedDefinitions = (defs, all = false, override = false) => {
   // TODO: This function can be cleaner!
