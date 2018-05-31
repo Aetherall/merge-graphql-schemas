@@ -4302,11 +4302,14 @@ var _makeRestDefinitions = function _makeRestDefinitions(defs) {
 };
 
 var _makeMergedFieldDefinitions = function _makeMergedFieldDefinitions(merged, candidate, override) {
-  return _addCommentsToAST(candidate.fields).reduce(function (fields, field) {
+  var a = _addCommentsToAST(candidate.fields);
+  return a.reduce(function (fields, field) {
     var original = merged.fields.find(function (base) {
       return base.name && typeof base.name.value !== 'undefined' && field.name && typeof field.name.value !== 'undefined' && base.name.value === field.name.value;
     });
     if (!original) {
+      fields.push(field);
+    } else if (override) {
       var base = fields.find(function (f) {
         return f.name.value === field.name.value;
       });
@@ -4315,32 +4318,13 @@ var _makeMergedFieldDefinitions = function _makeMergedFieldDefinitions(merged, c
       }
       fields.push(field);
     } else if (field.type.kind === 'NamedType') {
-      if (override) {
-        var _base = fields.find(function (f) {
-          return f.name.value === field.name.value;
-        });
-        if (_base) {
-          fields.splice(fields.indexOf(_base), 1);
-        }
-        fields.push(field);
-      } else {
-        if (field.type.name.value !== original.type.name.value) {
-          throw new Error(`Conflicting types for ${merged.name.value}.${field.name.value}: ` + `${field.type.name.value} != ${original.type.name.value}`);
-        }
+      if (field.type.name.value !== original.type.name.value) {
+        throw new Error(`Conflicting types for ${merged.name.value}.${field.name.value}: ` + `${field.type.name.value} != ${original.type.name.value}`);
       }
     } else if (field.type.kind === 'NonNullType') {
-      if (override) {
-        var _base2 = fields.find(function (f) {
-          return f.name.value === field.name.value;
-        });
-        if (_base2) {
-          fields.splice(fields.indexOf(_base2), 1);
-        }
-        fields.push(field);
-      } else {
-        if (field.type.type.name.value !== original.type.type.name.value) {
-          throw new Error(`Conflicting types for ${merged.name.value}.${field.name.value}: ` + `${field.type.type.name.value} != ${original.type.type.name.value}`);
-        }
+
+      if (field.type.type.name.value !== original.type.type.name.value) {
+        throw new Error(`Conflicting types for ${merged.name.value}.${field.name.value}: ` + `${field.type.type.name.value} != ${original.type.type.name.value}`);
       }
     }
     return fields;
