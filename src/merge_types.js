@@ -47,32 +47,52 @@ const _makeRestDefinitions = (defs, all = false) =>
       return def;
     });
 
-const _makeMergedFieldDefinitions = (merged, candidate) => _addCommentsToAST(candidate.fields)
+const _makeMergedFieldDefinitions = (merged, candidate, override) => _addCommentsToAST(candidate.fields)
   .reduce((fields, field) => {
     const original = merged.fields.find(base => base.name && typeof base.name.value !== 'undefined' &&
       field.name && typeof field.name.value !== 'undefined' &&
       base.name.value === field.name.value);
     if (!original) {
+      const base = fields.find((f) => f.name.value === field.name.value)
+      if(base){
+        fields.splice(fields.indexOf(base),1)
+      }
       fields.push(field);
     } else if (field.type.kind === 'NamedType') {
-      if (field.type.name.value !== original.type.name.value) {
-        throw new Error(
-          `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
-          `${field.type.name.value} != ${original.type.name.value}`,
-        );
+      if(override){
+        const base = fields.find((f) => f.name.value === field.name.value)
+        if(base){
+          fields.splice(fields.indexOf(base),1)
+        }
+        fields.push(field);
+      }else{
+        if (field.type.name.value !== original.type.name.value) {
+          throw new Error(
+            `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
+            `${field.type.name.value} != ${original.type.name.value}`,
+          );
+        }
       }
     } else if (field.type.kind === 'NonNullType') {
-      if (field.type.type.name.value !== original.type.type.name.value) {
-        throw new Error(
-          `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
-          `${field.type.type.name.value} != ${original.type.type.name.value}`,
-        );
+      if(override){
+        const base = fields.find((f) => f.name.value === field.name.value)
+        if(base){
+          fields.splice(fields.indexOf(base),1)
+        }
+        fields.push(field);
+      }else{
+        if (field.type.type.name.value !== original.type.type.name.value) {
+          throw new Error(
+            `Conflicting types for ${merged.name.value}.${field.name.value}: ` +
+            `${field.type.type.name.value} != ${original.type.type.name.value}`,
+          );
+        }
       }
     }
     return fields;
   }, merged.fields);
 
-const _makeMergedDefinitions = (defs, all = false) => {
+const _makeMergedDefinitions = (defs, all = false, override = false) => {
   // TODO: This function can be cleaner!
   const groupedMergableDefinitions = defs
     .filter(def => _isMergeableTypeDefinition(def, all))
@@ -94,7 +114,7 @@ const _makeMergedDefinitions = (defs, all = false) => {
           ...mergableDefs,
           [name]: {
             ...mergableDefs[name],
-            fields: _makeMergedFieldDefinitions(mergableDefs[name], def),
+            fields: _makeMergedFieldDefinitions(mergableDefs[name], def, override),
           },
         };
       }, {
@@ -116,7 +136,7 @@ const _makeDocumentWithDefinitions = definitions => ({
 
 const printDefinitions = defs => print(_makeDocumentWithDefinitions(defs));
 
-const mergeTypes = (types, options = { all: false }) => {
+const mergeTypes = (types, options = { all: false, override: false }) => {
   const allDefs = types
     .map((type) => {
       if (typeof type === 'string') {
@@ -127,7 +147,7 @@ const mergeTypes = (types, options = { all: false }) => {
     .map(ast => ast.definitions)
     .reduce((defs, newDef) => [...defs, ...newDef], []);
 
-  const mergedDefs = _makeMergedDefinitions(allDefs, options.all);
+  const mergedDefs = _makeMergedDefinitions(allDefs, options.all, options.override);
   const rest = _addCommentsToAST(_makeRestDefinitions(allDefs, options.all), false)
     .map(printDefinitions);
   const schemaDefs = allDefs.filter(isObjectSchemaDefinition);
