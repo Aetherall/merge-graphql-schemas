@@ -4304,11 +4304,13 @@ var _makeMergedFieldDefinitions = function _makeMergedFieldDefinitions(merged, c
     if (!original) {
       fields.push(field);
     } else if (override) {
-      var base = fields.find(function (f) {
-        return f.name.value === field.name.value;
-      });
-      if (base) {
-        fields.splice(fields.indexOf(base), 1);
+      if (field.arguments.length > 0) {
+        var base = fields.find(function (f) {
+          return f.name.value === field.name.value;
+        });
+        if (base) {
+          fields.splice(fields.indexOf(base), 1);
+        }
       }
       fields.push(field);
     } else if (field.type.kind === 'NamedType') {
@@ -4316,7 +4318,6 @@ var _makeMergedFieldDefinitions = function _makeMergedFieldDefinitions(merged, c
         throw new Error(`Conflicting types for ${merged.name.value}.${field.name.value}: ` + `${field.type.name.value} != ${original.type.name.value}`);
       }
     } else if (field.type.kind === 'NonNullType') {
-
       if (field.type.type.name.value !== original.type.type.name.value) {
         throw new Error(`Conflicting types for ${merged.name.value}.${field.name.value}: ` + `${field.type.type.name.value} != ${original.type.type.name.value}`);
       }
