@@ -51,11 +51,9 @@ const _makeMergedFieldDefinitions = (merged, candidate, override) => {
     if (!original) {
       fields.push(field);
     } else if (override) {
-      if (field.arguments.length > 0) {
-        const base = fields.find((f) => f.name.value === field.name.value);
-        if (base) {
-          fields.splice(fields.indexOf(base), 1);
-        }
+      const base = fields.find(f => f.name.value === field.name.value);
+      if (base) {
+        fields.splice(fields.indexOf(base), 1);
       }
       fields.push(field);
     } else if (field.type.kind === 'NamedType') {
